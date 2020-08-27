@@ -105,37 +105,22 @@ let
   # From the version info, create a fetchurl derivation which will get the
   # sources from the remote.
   fetchVersion = info:
-    if info.chksumSig != null then
-      super.fetchurl {
-        inherit (info) url sha512;
+    super.fetchurl {
+      inherit (info) url sha512;
 
-        # This is a fixed derivation, but we still add as a dependency the
-        # verification of the checksum.  Thus, this fetch script can only be
-        # executed once the verifyAuthenticity script finished successfully.
-        postFetch = ''
-          : # Authenticity Check (${verifyFileAuthenticity {
-            file = builtins.fetchurl info.chksum;
-            asc = builtins.fetchurl info.chksumSig;
-          }})
-        '';
-      }
-    else
-      super.fetchurl {
-        inherit (info) url sha512;
-
-        # This would download the tarball, and then verify that the content
-        # match the signature file. Fortunately, any failure of this code would
-        # prevent the output from being reused.
-        postFetch =
-          let asc = super.fetchurl { url = info.sig; sha512 = info.sigSha512; }; in ''
-          : # Authenticity Check
-          HOME=`mktemp -d`
-          set -eu
-          export PATH="$PATH:${self.gnupg}/bin/"
-          cat ${./firefox.key} | gpg --import
-          gpgv --keyring=$HOME/.gnupg/pubring.kbx ${asc} $out
-        '';
-      };
+      # This would download the tarball, and then verify that the content
+      # match the signature file. Fortunately, any failure of this code would
+      # prevent the output from being reused.
+      postFetch =
+        let asc = super.fetchurl { url = info.sig; sha512 = info.sigSha512; }; in ''
+        : # Authenticity Check
+        HOME=`mktemp -d`
+        set -eu
+        export PATH="$PATH:${self.gnupg}/bin/"
+        cat ${./firefox.key} | gpg --import
+        gpgv --keyring=$HOME/.gnupg/pubring.kbx ${asc} $out
+      '';
+    };
 
   firefoxVersion = version:
     let info = versionInfo version; in
